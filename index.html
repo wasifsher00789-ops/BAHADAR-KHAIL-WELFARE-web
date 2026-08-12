@@ -209,6 +209,10 @@ footer{
 @media(max-width:760px){#monthlyReportCharts .report-charts{grid-template-columns:1fr!important}#monthlyReportCharts .chart-card:nth-child(3){grid-column:auto}#monthlyReportBody .report-print{padding:12px}}
 @media print{#reports>.tabs,#reports>.sub,#reportBox>.toolbar,#reportBox>.grid,#monthlyReportCharts,#monthlyReportBody .report-footer{display:none!important}#monthlyReportBody .report-print{border:0;box-shadow:none;padding:0}}
 </style>
+
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div id="login" class="login"><div class="loginbox">
@@ -650,5 +654,37 @@ function renderAll(){
   else {reportType('summary',document.querySelector('.tabs button[onclick*="summary"]'));}
   document.getElementById('orgName').value=db.settings.name;document.getElementById('tagline').value=db.settings.tag;document.querySelectorAll('.brand h1').forEach(x=>x.textContent=db.settings.name);document.querySelectorAll('.brand small').forEach(x=>x.textContent=db.settings.tag)}
 renderAll();
+</script>
+<script id="bhwc-firebase-sync">
+(function(){
+  const firebaseConfig={apiKey:"AIzaSyABjlhHEjHdNr6-xZfqlBFSjYXtLO0iE6U",authDomain:"bahadurkhail-welfare-community.firebaseapp.com",databaseURL:"https://bahadurkhail-welfare-community-default-rtdb.firebaseio.com",projectId:"bahadurkhail-welfare-community",storageBucket:"bahadurkhail-welfare-community.firebasestorage.app",messagingSenderId:"934004243813",appId:"1:934004243813:web:054dac138df7f933bf358c",measurementId:"G-R8XYW0DXKD"};
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth=firebase.auth(), rtdb=firebase.database();
+    window.BHWC_FIREBASE={ready:false,writing:false,auth:auth,db:rtdb};
+    auth.signInAnonymously().then(function(){
+      window.BHWC_FIREBASE.ready=true;
+      const root=rtdb.ref('appData');
+      root.on('value',function(snap){
+        const remote=snap.val();
+        if(remote && typeof remote==='object' && Array.isArray(remote.members) && Array.isArray(remote.fund) && Array.isArray(remote.tx)){
+          const pin=db.pin; db=remote; if(pin) db.pin=pin;
+          localStorage.setItem(K,JSON.stringify(db));
+          try{renderAll()}catch(e){console.error(e)}
+        }else if(!remote && !window.BHWC_FIREBASE.writing){
+          window.BHWC_FIREBASE.writing=true; root.set(db).finally(function(){window.BHWC_FIREBASE.writing=false});
+        }
+      },function(err){console.error('Firebase read failed',err)});
+      const localSave=save;
+      save=function(){
+        localStorage.setItem(K,JSON.stringify(db));
+        try{renderAll()}catch(e){console.error(e)}
+        if(!window.BHWC_FIREBASE.ready || window.BHWC_FIREBASE.writing)return Promise.resolve();
+        window.BHWC_FIREBASE.writing=true;
+        return root.set(db).finally(function(){window.BHWC_FIREBASE.writing=false});
+      };
+    }).catch(function(err){console.error('Firebase anonymous auth failed',err)});
+  }catch(e){console.error('Firebase init failed',e)}
+})();
 </script>
 </body></html>
