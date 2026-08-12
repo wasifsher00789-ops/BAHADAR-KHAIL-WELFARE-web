@@ -179,6 +179,36 @@ footer{
 }
 </style>
 
+<style id="reports-final-polish">
+#reports{padding-bottom:24px}
+#reports>h2{font-size:26px;letter-spacing:-.02em;margin-bottom:2px}
+#reports>.tabs{background:#fff;border:1px solid #e1ebe7;border-radius:16px;padding:6px;box-shadow:0 8px 22px rgba(20,57,49,.06);gap:5px}
+#reports>.tabs button{border:0!important;background:transparent!important;color:#60756e!important;font-weight:800;padding:10px 13px;border-radius:11px!important}
+#reports>.tabs button.sel{background:#0f7a5b!important;color:#fff!important;box-shadow:0 5px 14px rgba(15,122,91,.2)}
+#reportBox>.toolbar{background:#f7faf9;border:1px solid #e1ebe7;border-radius:16px;padding:11px}
+#reportBox>.grid{margin-top:12px}
+#reportBox>.grid .card.metric{position:relative;overflow:hidden;border-radius:17px!important;padding:15px 16px!important}
+#reportBox>.grid .card.metric:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#0f7a5b}
+#reportBox>.grid .card.metric:nth-child(2):before{background:#1686c8}
+#reportBox>.grid .card.metric:nth-child(3):before{background:#d84b4b}
+#reportBox>.grid .card.metric:nth-child(4):before{background:#7b48c7}
+#monthlyReportCharts{margin-top:14px}
+#monthlyReportCharts .report-charts{grid-template-columns:1fr 1fr!important;gap:14px}
+#monthlyReportCharts .chart-card{min-height:285px;border-radius:18px!important;padding:16px!important}
+#monthlyReportCharts .chart-card:nth-child(3){grid-column:1/-1}
+#monthlyReportCharts .chart-card h3{font-size:15px;font-weight:850}
+#monthlyReportBody .report-print{background:#fff;border:1px solid #e1ebe7;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(20,57,49,.05)}
+#monthlyReportBody .print-report-header{border-bottom:1px solid #e4ece9;padding-bottom:13px;margin-bottom:15px}
+#monthlyReportBody .print-report-header h2{margin:0;color:#0f5c4d;font-size:20px}
+#monthlyReportBody .print-report-header h3{margin:5px 0 4px;font-size:16px}
+#monthlyReportBody .print-report-header p{margin:0;color:#71817b;font-size:12px}
+#monthlyReportBody .report-table{border:1px solid #e1ebe7;border-radius:14px;overflow:hidden;margin-top:8px}
+#monthlyReportBody .report-table th{background:#f0f7f4!important;color:#31554d!important}
+#monthlyReportBody .report-table tr:hover td{background:#fafdfc}
+#monthlyReportBody .report-footer{background:#f2f8f5;border:1px solid #dceae4;border-radius:14px}
+@media(max-width:760px){#monthlyReportCharts .report-charts{grid-template-columns:1fr!important}#monthlyReportCharts .chart-card:nth-child(3){grid-column:auto}#monthlyReportBody .report-print{padding:12px}}
+@media print{#reports>.tabs,#reports>.sub,#reportBox>.toolbar,#reportBox>.grid,#monthlyReportCharts,#monthlyReportBody .report-footer{display:none!important}#monthlyReportBody .report-print{border:0;box-shadow:none;padding:0}}
+</style>
 </head>
 <body>
 <div id="login" class="login"><div class="loginbox">
@@ -379,20 +409,20 @@ function drawDashTrend(){const c=reportChartData(reportMonthValue()),z=setupDash
 function renderDashboard(){
   const selected=reportMonthValue(),m=monthlyReport(selected),inc=sum('Income'),ex=sum('Expense');
   document.getElementById('dFund').textContent=money(m.total);
-  document.getElementById('dPending').textContent=money(Math.max(0,m.expected-m.total));
+  document.getElementById('dPending').textContent=String(m.not.length);
   document.getElementById('dMembers').textContent=db.members.length;
   document.getElementById('dBalance').textContent=money(m.total);
   const dateEl=document.getElementById('date');if(dateEl)dateEl.textContent=new Date().toLocaleDateString('en-PK',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   const recent=document.getElementById('dashRecentPayments');
-  if(recent){const rows=db.fund.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||Number(b.id)-Number(a.id)).slice(0,6);recent.innerHTML=rows.length?rows.map(x=>{const mm=db.members.find(q=>Number(q.id)===Number(x.memberId));return `<div class="recent-row-v3"><span>${esc(mm?.name||'Unknown')}</span><b>${money(x.paid)}</b><span>${esc(x.date||'—')}</span><span class="method"><span class="paid-dot-v3">Paid</span></span></div>`}).join(''):'<div class="empty">No payments yet.</div>';}
+  if(recent){const rows=db.fund.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||Number(b.id)-Number(a.id)).slice(0,6);recent.innerHTML=rows.length?rows.map(x=>{const mm=db.members.find(q=>String(q.id)===String(x.memberId));return `<div class="recent-row-v3"><span>${esc(mm?.name||'Unknown')}</span><b>${money(x.paid)}</b><span>${esc(x.date||'—')}</span><span class="method"><span class="paid-dot-v3">Paid</span></span></div>`}).join(''):'<div class="empty">No payments yet.</div>';}
   requestAnimationFrame(()=>{try{drawDashPaid();drawDashTrend();}catch(err){console.error(err);}});
 }
 function sum(t){return db.tx.filter(x=>x.type===t).reduce((a,x)=>a+x.amount,0)}
 function renderMembers(){let q=(document.getElementById('ms')?.value||'').toLowerCase(),a=db.members.filter(x=>x.name.toLowerCase().includes(q));document.getElementById('memberRows').innerHTML=a.length?a.map(m=>`<tr><td><button class="name-link" onclick="openMemberHistory(${m.id})">${esc(m.name)}</button></td><td>${esc(m.phone)}</td><td>${money(m.fund)}</td><td><span class="pill ${m.status==='Active'?'ok':'pending'}">${m.status}</span></td><td><button class="btn light" onclick="openMemberHistory(${m.id})">History</button> <button class="btn light" onclick="openMember(${m.id})">Edit</button> <button class="btn red" onclick="delMember(${m.id})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No members.</td></tr>'}
 function openMemberHistory(memberId){let m=db.members.find(x=>x.id===memberId);if(!m)return;modal('Member Payment History',`<div><h3 style="margin:0">${esc(m.name)}</h3><div class="sub">${esc(m.phone||'No phone')} • Monthly fund ${money(m.fund)}</div><div class="member-profile"><div class="profile-stat"><small>Monthly Fund</small><b>${money(m.fund)}</b></div><div class="profile-stat"><small>Total Payments</small><b id="histCount">0</b></div><div class="profile-stat"><small>Total Paid</small><b id="histTotal">Rs. 0</b></div><div class="profile-stat"><small>Last Payment</small><b id="histLast">—</b></div></div><div class="history-tools"><input id="histMonth" placeholder="Filter month e.g. August 2026" oninput="renderMemberHistory(${memberId})"><input id="histFrom" type="date" onchange="renderMemberHistory(${memberId})"><button class="btn" onclick="openFund(${memberId})">+ Add Payment</button></div><div id="memberHistoryRows" class="history-list"></div></div>`);renderMemberHistory(memberId)}
-function renderMemberHistory(memberId){let box=document.getElementById('memberHistoryRows');if(!box)return;let q=(document.getElementById('histMonth')?.value||'').trim().toLowerCase(),from=document.getElementById('histFrom')?.value||'';let all=db.fund.filter(x=>x.memberId===memberId).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);let rows=all.filter(x=>(!q||String(x.month||'').toLowerCase().includes(q))&&(!from||(x.date||'')>=from));let total=rows.reduce((s,x)=>s+Number(x.paid||0),0);document.getElementById('histCount').textContent=rows.length;document.getElementById('histTotal').textContent=money(total);document.getElementById('histLast').textContent=rows[0]?.date||'—';box.innerHTML=`<div class="history-row history-head"><span>Date</span><span>Month</span><span>Paid</span><span>Status</span></div>${rows.length?rows.map(x=>{let ok=Number(x.paid||0)>=Number(x.expected||0);return `<div class="history-row"><span>${esc(x.date||'—')}</span><span>${esc(x.month||'—')}</span><b>${money(x.paid)}</b><span class="pill ${ok?'ok':'pending'}">${ok?'Paid':'Partial'}</span></div>`}).join(''):'<div class="history-empty">No payment history for this filter.</div>'}`}
+function renderMemberHistory(memberId){let box=document.getElementById('memberHistoryRows');if(!box)return;let q=(document.getElementById('histMonth')?.value||'').trim().toLowerCase(),from=document.getElementById('histFrom')?.value||'';let all=db.fund.filter(x=>String(x.memberId)===String(memberId)).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);let rows=all.filter(x=>(!q||String(x.month||'').toLowerCase().includes(q))&&(!from||(x.date||'')>=from));let total=rows.reduce((s,x)=>s+Number(x.paid||0),0);document.getElementById('histCount').textContent=rows.length;document.getElementById('histTotal').textContent=money(total);document.getElementById('histLast').textContent=rows[0]?.date||'—';box.innerHTML=`<div class="history-row history-head"><span>Date</span><span>Month</span><span>Paid</span><span>Status</span></div>${rows.length?rows.map(x=>{let ok=Number(x.paid||0)>=Number(x.expected||0);return `<div class="history-row"><span>${esc(x.date||'—')}</span><span>${esc(x.month||'—')}</span><b>${money(x.paid)}</b><span class="pill ${ok?'ok':'pending'}">${ok?'Paid':'Partial'}</span></div>`}).join(''):'<div class="history-empty">No payment history for this filter.</div>'}`}
 
-function renderFund(){let q=(document.getElementById('fs')?.value||'').toLowerCase(),a=db.fund.filter(x=>(db.members.find(m=>m.id===x.memberId)?.name||'').toLowerCase().includes(q));document.getElementById('fundRows').innerHTML=a.length?a.slice().reverse().map(x=>{let m=db.members.find(m=>m.id===x.memberId),ok=x.paid>=x.expected;return `<tr><td>${esc(m?.name||'Unknown')}</td><td>${esc(x.month)}</td><td>${money(x.expected)}</td><td>${money(x.paid)}</td><td><span class="pill ${ok?'ok':'pending'}">${ok?'Paid':'Partial/Pending'}</span></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">No fund payments.</td></tr>'}
+function renderFund(){let q=(document.getElementById('fs')?.value||'').toLowerCase(),a=db.fund.filter(x=>(db.members.find(m=>String(m.id)===String(x.memberId))?.name||'').toLowerCase().includes(q));document.getElementById('fundRows').innerHTML=a.length?a.slice().reverse().map(x=>{let m=db.members.find(m=>String(m.id)===String(x.memberId)),ok=x.paid>=x.expected;return `<tr><td>${esc(m?.name||'Unknown')}</td><td>${esc(x.month)}</td><td>${money(x.expected)}</td><td>${money(x.paid)}</td><td><span class="pill ${ok?'ok':'pending'}">${ok?'Paid':'Partial/Pending'}</span></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">No fund payments.</td></tr>'}
 function renderAccounts(){let i=sum('Income'),e=sum('Expense');document.getElementById('aIn').textContent=money(i);document.getElementById('aEx').textContent=money(e);document.getElementById('aBal').textContent=money(i-e);document.getElementById('aTx').textContent=db.tx.length;document.getElementById('txRows').innerHTML=db.tx.length?db.tx.slice().reverse().map(x=>`<tr><td>${x.date}</td><td><span class="pill ${x.type==='Income'?'ok':'bad'}">${x.type}</span></td><td>${esc(x.title)}</td><td>${money(x.amount)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No transactions.</td></tr>'}
 function renderNotices(){document.getElementById('noticeRows').innerHTML=db.notices.length?db.notices.slice().reverse().map(n=>`<div class="notice"><b>${esc(n.title)}</b><small style="float:right;color:#7a8c99">${n.date}</small><p>${esc(n.body)}</p></div>`).join(''):'<div class="empty">No announcements.</div>'}
 function reportMonthValue(){
@@ -442,30 +472,41 @@ function paymentMonthKey(x){
   return explicit;
 }
 function monthlyReport(monthValue){
-  const target=monthKey(monthValue),active=db.members.filter(m=>m.status==='Active'),paidMap=new Map(),dateMap=new Map();
+  const target=monthKey(monthValue);
+  const active=db.members.filter(m=>String(m.status||'Active').toLowerCase()==='active');
+  const paidMap=new Map(),dateMap=new Map();
+
   db.fund.filter(x=>paymentMonthKey(x)===target).forEach(x=>{
-    paidMap.set(x.memberId,(paidMap.get(x.memberId)||0)+Number(x.paid||0));
-    const old=dateMap.get(x.memberId)||'';
-    if((x.date||'')>old)dateMap.set(x.memberId,x.date||'');
+    const rawId=String(x.memberId??'').trim();
+    const rawName=String(x.memberName??x.name??'').trim().toLowerCase();
+    let member=active.find(m=>String(m.id)===rawId);
+    if(!member && rawName) member=active.find(m=>String(m.name||'').trim().toLowerCase()===rawName);
+    if(!member) return;
+
+    const key=String(member.id);
+    const amount=Number(x.paid??x.amount??0)||0;
+    paidMap.set(key,(paidMap.get(key)||0)+amount);
+    const d=String(x.date||'');
+    if(d>(dateMap.get(key)||'')) dateMap.set(key,d);
   });
-  const paid=active.filter(m=>(paidMap.get(m.id)||0)>0);
-  const not=active.filter(m=>(paidMap.get(m.id)||0)<=0);
-  const total=paid.reduce((s,m)=>s+(paidMap.get(m.id)||0),0);
+
+  const paid=active.filter(m=>(paidMap.get(String(m.id))||0)>0);
+  const not=active.filter(m=>(paidMap.get(String(m.id))||0)<=0);
+  const total=active.reduce((s,m)=>s+(paidMap.get(String(m.id))||0),0);
   const expected=active.reduce((s,m)=>s+Number(m.fund||0),0);
   return {active,paid,not,paidMap,dateMap,total,expected};
 }
 
 function reportChartData(selected){
-  const active=db.members.filter(m=>m.status==='Active');
   const m=monthlyReport(selected);
-  const totalMembers=active.length||0, paidCount=m.paid.length, notCount=m.not.length;
+  const totalMembers=m.active.length||0, paidCount=m.paid.length, notCount=m.not.length;
   const paidDeg=totalMembers?Math.round(paidCount/totalMembers*360):0;
   const months=[];
   const base=new Date(selected+'-01T00:00:00');
   for(let i=5;i>=0;i--){
     const d=new Date(base); d.setMonth(d.getMonth()-i);
     const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    const amount=db.fund.filter(x=>paymentMonthKey(x)===key).reduce((a,x)=>a+Number(x.paid||0),0);
+    const amount=db.fund.filter(x=>paymentMonthKey(x)===key).reduce((a,x)=>a+(Number(x.paid??x.amount??0)||0),0);
     months.push({key,label:d.toLocaleDateString('en-US',{month:'short'}),amount});
   }
   const max=Math.max(1,...months.map(x=>x.amount));
@@ -550,7 +591,7 @@ function renderMonthlyReport(){
     <div class="print-report-header"><h2>Bahadur Khail Welfare Community</h2><h3>Monthly Fund Report — ${esc(displayMonth)}</h3><p>Report Month: <b>${esc(displayMonth)}</b></p></div>
     <h3>✅ Paid Members (${m.paid.length})</h3>
     <table class="report-table"><thead><tr><th>#</th><th>Member Name</th><th>Monthly Fund</th><th>Paid</th><th>Payment Date</th></tr></thead><tbody>
-    ${m.paid.length?m.paid.map((x,i)=>{const amount=m.paidMap.get(x.id)||0;const partial=amount<Number(x.fund||0);return `<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td><b>${money(amount)}</b>${partial?' <span class="pill pending">Partial</span>':''}</td><td>${esc(m.dateMap.get(x.id)||'—')}</td></tr>`}).join(''):'<tr><td colspan="5" class="empty">No paid members this month.</td></tr>'}
+    ${m.paid.length?m.paid.map((x,i)=>{const amount=m.paidMap.get(String(x.id))||0;const partial=amount<Number(x.fund||0);return `<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td><b>${money(amount)}</b>${partial?' <span class="pill pending">Partial</span>':''}</td><td>${esc(m.dateMap.get(String(x.id))||'—')}</td></tr>`}).join(''):'<tr><td colspan="5" class="empty">No paid members this month.</td></tr>'}
     </tbody></table>
     <h3 style="margin-top:20px">❌ Not Paid Members (${m.not.length})</h3>
     <table class="report-table"><thead><tr><th>#</th><th>Member Name</th><th>Monthly Fund</th><th>Status</th></tr></thead><tbody>
@@ -569,7 +610,7 @@ function reportType(type,btn){
   const box=document.getElementById('reportBox');
   if(!box)return;
   if(type==='monthly'){
-    box.innerHTML=`<div class="toolbar" style="margin-top:0"><label style="display:flex;align-items:center;gap:8px;flex:1;min-width:220px"><b>Report Month</b><select id="reportMonth" onchange="currentReportMonth=this.value;renderMonthlyReport()" style="padding:11px;border:1px solid var(--line);border-radius:12px;flex:1">${monthOptions(currentReportMonth||reportMonthValue())}</select></label><button class="btn" onclick="printMonthlyReport()">🖨️ Print Monthly Report</button></div>
+    box.innerHTML=`<div class="toolbar" style="margin-top:0"><label style="display:flex;align-items:center;gap:8px;flex:1;min-width:220px"><b>Report Month</b><select id="reportMonth" onchange="currentReportMonth=this.value;renderMonthlyReport()" style="padding:11px;border:1px solid var(--line);border-radius:12px;flex:1">${monthOptions(currentReportMonth||reportMonthValue())}</select></label><button class="btn" style="background:#0f7a5b" onclick="printMonthlyReport()">🖨️ Print Monthly Report</button></div>
     <div class="grid" style="margin-top:10px"><div class="card metric"><div class="lab">Total Members</div><div class="val" id="rMemberCount">0</div></div><div class="card metric"><div class="lab">Paid</div><div class="val" id="rPaidCount">0</div></div><div class="card metric"><div class="lab">Not Paid</div><div class="val" id="rNotCount">0</div></div><div class="card metric"><div class="lab">Total Collected</div><div class="val" id="rTotalPaid">Rs. 0</div></div></div>
     <div id="monthlyReportCharts"></div><div id="monthlyReportBody" style="margin-top:14px"></div>`;
     renderMonthlyReport();
@@ -587,7 +628,7 @@ function reportType(type,btn){
 function printMonthlyReport(){
   const monthValue=document.getElementById('reportMonth')?.value||reportMonthValue();
   const m=monthlyReport(monthValue), label=monthLabel(monthValue);
-  const rowsPaid=m.paid.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td>${money(m.paidMap.get(x.id)||0)}</td><td>${esc(m.dateMap.get(x.id)||'—')}</td></tr>`).join('')||'<tr><td colspan="5">No paid members.</td></tr>';
+  const rowsPaid=m.paid.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td>${money(m.paidMap.get(String(x.id))||0)}</td><td>${esc(m.dateMap.get(String(x.id))||'—')}</td></tr>`).join('')||'<tr><td colspan="5">No paid members.</td></tr>';
   const rowsNot=m.not.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td>Not Paid</td></tr>`).join('')||'<tr><td colspan="4">Everyone has paid.</td></tr>';
   const w=window.open('','_blank');
   if(!w)return alert('Please allow pop-ups to print the report.');
