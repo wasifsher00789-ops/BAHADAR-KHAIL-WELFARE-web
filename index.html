@@ -631,29 +631,45 @@ function paymentMonthKey(x){
   return explicit;
 }
 function monthlyReport(monthValue){
-  const target=monthKey(monthValue);
-  const active=db.members.filter(m=>String(m.status||'Active').toLowerCase()==='active');
+  const target=monthKey(monthValue)||reportMonthValue();
+
+  // Monthly report must use the complete member list.
+  // Match payments by member ID first, then by normalized member name,
+  // and use both the stored month and payment date as the month key.
+  const members=Array.isArray(db.members)?db.members.filter(Boolean):[];
   const paidMap=new Map(),dateMap=new Map();
 
-  db.fund.filter(x=>paymentMonthKey(x)===target).forEach(x=>{
-    const rawId=String(x.memberId??'').trim();
-    const rawName=String(x.memberName??x.name??'').trim().toLowerCase();
-    let member=active.find(m=>String(m.id)===rawId);
-    if(!member && rawName) member=active.find(m=>String(m.name||'').trim().toLowerCase()===rawName);
+  function norm(v){return String(v??'').trim().replace(/\s+/g,' ').toLowerCase();}
+  function paymentTarget(x){
+    const keys=[x?.month,x?.monthLabel,x?.date];
+    for(const v of keys){
+      if(!v) continue;
+      const k=monthKey(v);
+      if(/^\d{4}-\d{2}$/.test(k)) return k;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return String(v).slice(0,7);
+    }
+    return "";
+  }
+
+  db.fund.filter(x=>paymentTarget(x)===target).forEach(x=>{
+    const rawId=norm(x?.memberId);
+    const rawName=norm(x?.memberName??x?.name);
+    let member=members.find(m=>norm(m.id)===rawId);
+    if(!member && rawName) member=members.find(m=>norm(m.name)===rawName);
     if(!member) return;
 
     const key=String(member.id);
-    const amount=Number(x.paid??x.amount??0)||0;
+    const amount=Number(x?.paid??x?.amount??0)||0;
     paidMap.set(key,(paidMap.get(key)||0)+amount);
-    const d=String(x.date||'');
+    const d=String(x?.date||'');
     if(d>(dateMap.get(key)||'')) dateMap.set(key,d);
   });
 
-  const paid=active.filter(m=>(paidMap.get(String(m.id))||0)>0);
-  const not=active.filter(m=>(paidMap.get(String(m.id))||0)<=0);
-  const total=active.reduce((s,m)=>s+(paidMap.get(String(m.id))||0),0);
-  const expected=active.reduce((s,m)=>s+Number(m.fund||0),0);
-  return {active,paid,not,paidMap,dateMap,total,expected};
+  const paid=members.filter(m=>(paidMap.get(String(m.id))||0)>0);
+  const not=members.filter(m=>(paidMap.get(String(m.id))||0)<=0);
+  const total=members.reduce((s,m)=>s+(paidMap.get(String(m.id))||0),0);
+  const expected=members.reduce((s,m)=>s+Number(m.fund||0),0);
+  return {active:members,paid,not,paidMap,dateMap,total,expected};
 }
 
 function reportChartData(selected){
@@ -767,6 +783,68 @@ async function saveReportSnapshot(type, monthValue){
   window.BHWC.saveQueue=(window.BHWC.saveQueue||Promise.resolve()).then(()=>window.BHWC.root.update(cloudPayload()));
   await window.BHWC.saveQueue;
   return true;
+}
+
+function renderMonthlyReport(){
+  const input=document.getElementById('reportMonth');
+  const body=document.getElementById('monthlyReportBody');
+  if(!input||!body)return;
+
+  const selected=monthKey(input.value)||reportMonthValue();
+  const displayMonth=monthLabel(selected);
+  currentReportMonth=selected;
+  const m=monthlyReport(selected);
+
+  // Update the four visible monthly report counters.
+  const memberEl=document.getElementById('rMemberCount');
+  const paidEl=document.getElementById('rPaidCount');
+  const notEl=document.getElementById('rNotCount');
+  const totalPaidEl=document.getElementById('rTotalPaid');
+  if(memberEl) memberEl.textContent=String(m.active.length);
+  if(paidEl) paidEl.textContent=String(m.paid.length);
+  if(notEl) notEl.textContent=String(m.not.length);
+  if(totalPaidEl) totalPaidEl.textContent=money(m.total);
+
+  // Optional counters: keep this safe even if these cards are not in the HTML.
+  const expectedEl=document.getElementById('rExpected');
+  const balanceExpectedEl=document.getElementById('rBalanceExpected');
+  if(expectedEl) expectedEl.textContent=money(m.expected);
+  if(balanceExpectedEl) balanceExpectedEl.textContent=money(Math.max(0,m.expected-m.total));
+
+  const charts=document.getElementById('monthlyReportCharts');
+  if(charts){
+    charts.innerHTML=reportChartsHTML(selected);
+    try{drawReportCharts(selected);}catch(err){console.error('Report charts:',err);}
+  }
+
+  const paidRows=m.paid.map((x,i)=>{
+    const amount=Number(m.paidMap.get(String(x.id))||0);
+    const partial=amount<Number(x.fund||0);
+    return `<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td><b>${money(amount)}</b>${partial?' <span class="pill pending">Partial</span>':''}</td><td>${esc(m.dateMap.get(String(x.id))||'—')}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="empty">No paid members this month.</td></tr>';
+
+  const notRows=m.not.map((x,i)=>
+    `<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.fund)}</td><td><span class="pill bad">Not Paid</span></td></tr>`
+  ).join('') || '<tr><td colspan="4" class="empty">Everyone has paid this month.</td></tr>';
+
+  body.innerHTML=`<div class="report-print">
+    <div class="print-report-header">
+      <h2>Bahadur Khail Welfare Community</h2>
+      <h3>Monthly Fund Report — ${esc(displayMonth)}</h3>
+      <p>Report Month: <b>${esc(displayMonth)}</b></p>
+    </div>
+    <h3>✅ Paid Members (${m.paid.length})</h3>
+    <table class="report-table"><thead><tr><th>#</th><th>Member Name</th><th>Monthly Fund</th><th>Paid</th><th>Payment Date</th></tr></thead><tbody>${paidRows}</tbody></table>
+    <h3 style="margin-top:20px">❌ Not Paid Members (${m.not.length})</h3>
+    <table class="report-table"><thead><tr><th>#</th><th>Member Name</th><th>Monthly Fund</th><th>Status</th></tr></thead><tbody>${notRows}</tbody></table>
+    <div class="report-footer"><b>Report Month:</b> ${esc(displayMonth)} &nbsp; | &nbsp; <b>Total Members:</b> ${m.active.length} &nbsp; | &nbsp; <b>Paid:</b> ${m.paid.length} &nbsp; | &nbsp; <b>Not Paid:</b> ${m.not.length} &nbsp; | &nbsp; <b>Total Collected:</b> ${money(m.total)} &nbsp; | &nbsp; <b>Remaining Expected:</b> ${money(Math.max(0,m.expected-m.total))}</div>
+  </div>`;
+
+  // Save this exact monthly paid/not-paid snapshot to Firebase.
+  saveReportSnapshot('monthly',selected).catch(err=>{
+    console.error('Monthly report save failed:',err);
+    toast('Monthly report cloud save failed: '+(err.message||'Please check Firebase.'),'error');
+  });
 }
 
 function reportType(type,btn){
