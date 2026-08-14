@@ -354,6 +354,8 @@ try{
 }catch(e){console.error("Firebase init:",e)}
 
 function save(){
+  console.log("NOTICES =", db.notices);
+  console.log("REPORTS =", db.reports);
   localStorage.setItem(K, JSON.stringify(db));
   renderAll();
   if(window.BHWC && window.BHWC.ready && window.BHWC.root){
