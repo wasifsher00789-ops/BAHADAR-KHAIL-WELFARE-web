@@ -677,12 +677,8 @@ function renderMonthlyReport(){
     <div class="report-footer"><b>Report Month:</b> ${esc(displayMonth)} &nbsp; | &nbsp; <b>Total Members:</b> ${m.active.length} &nbsp; | &nbsp; <b>Paid:</b> ${m.paid.length} &nbsp; | &nbsp; <b>Not Paid:</b> ${m.not.length} &nbsp; | &nbsp; <b>Total Collected:</b> ${money(m.total)} &nbsp; | &nbsp; <b>Remaining Expected:</b> ${money(Math.max(0,m.expected-m.total))}</div>
   </div>`;
 }
-
-
 function reportType(type,btn){
-
   currentReportType = type;
-
   if(type === 'monthly'){
     currentReportMonth =
       document.getElementById('reportMonth')?.value ||
