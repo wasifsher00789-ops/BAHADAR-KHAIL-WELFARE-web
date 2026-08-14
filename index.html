@@ -354,16 +354,17 @@ try{
 }catch(e){console.error("Firebase init:",e)}
 
 function save(){
-  localStorage.setItem(K,JSON.stringify(db));
+  localStorage.setItem(K, JSON.stringify(db));
   renderAll();
-  if(window.BHWC&&window.BHWC.ready&&window.BHWC.root){
-    return window.BHWC.root.set({
-      members:Array.isArray(db.members)?db.members:[],
-      fund:Array.isArray(db.fund)?db.fund:[],
-      tx:Array.isArray(db.tx)?db.tx:[],
-      notices:Array.isArray(db.notices)?db.notices:[],
-      settings:db.settings||{},
-      pin:db.pin||"1234"
+  if(window.BHWC && window.BHWC.ready && window.BHWC.root){
+    return window.BHWC.root.update({
+      members: Array.isArray(db.members) ? db.members : [],
+      fund: Array.isArray(db.fund) ? db.fund : [],
+      tx: Array.isArray(db.tx) ? db.tx : [],
+      notices: Array.isArray(db.notices) ? db.notices : [],
+      reports: Array.isArray(db.reports) ? db.reports : [],
+      settings: db.settings || {},
+      pin: db.pin || "1234"
     }).catch(function(e){console.error("Firebase save failed:",e);});
   }
   return Promise.resolve();
