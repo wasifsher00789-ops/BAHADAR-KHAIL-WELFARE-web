@@ -305,13 +305,13 @@ footer{
 <div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="mt">Add</h3><button class="x" onclick="closeModal()">✕</button></div><div id="mb"></div></div></div>
 
 <script>
-const K='bhwc_website_v3', defaultDB={members:[],fund:[],tx:[],notices:[],settings:{name:'Bahadur Khail Welfare Community',tag:'امید • یکجہتی • خدمت'},pin:'1234'};
+const K='bhwc_website_v3', defaultDB={members:[],fund:[],tx:[],notices:[],reports:[],settings:{name:'Bahadur Khail Welfare Community',tag:'امید • یکجہتی • خدمت'},pin:'1234'};
 let currentReportType='summary';
 let currentReportMonth=reportMonthValue();
 let old=null, stored=null;
 try{ old=JSON.parse(localStorage.getItem('bhwc_complete_v2')||'null'); }catch(e){ old=null; }
 try{ stored=JSON.parse(localStorage.getItem(K)||'null'); }catch(e){ stored=null; }
-let db=stored||{...defaultDB,members:old?.members||[],fund:old?.fund||[],tx:old?.tx||[],notices:old?.notices||[],settings:old?.settings||defaultDB.settings,pin:old?.pin||defaultDB.pin};
+let db=stored||{...defaultDB,members:old?.members||[],fund:old?.fund||[],tx:old?.tx||[],notices:old?.notices||[],reports:old?.reports||[],settings:old?.settings||defaultDB.settings,pin:old?.pin||defaultDB.pin};
 window.BHWC={ready:false,root:null};
 try{
   const firebaseConfig={
@@ -338,6 +338,7 @@ try{
         fund:Array.isArray(remote.fund)?remote.fund:(db.fund||[]),
         tx:Array.isArray(remote.tx)?remote.tx:(db.tx||[]),
         notices:Array.isArray(remote.notices)?remote.notices:(db.notices||[]),
+        reports:Array.isArray(remote.reports)?remote.reports:(db.reports||[]),
         settings:remote.settings||db.settings||{},
         pin:remote.pin||db.pin||"1234"
       };
@@ -346,7 +347,7 @@ try{
     }else{
       return window.BHWC.root.set({
         members:db.members||[],fund:db.fund||[],tx:db.tx||[],
-        notices:db.notices||[],settings:db.settings||{},pin:db.pin||"1234"
+        notices:db.notices||[],reports:db.reports||[],settings:db.settings||{},pin:db.pin||"1234"
       });
     }
   }).catch(function(e){console.error("Firebase sync:",e)});
